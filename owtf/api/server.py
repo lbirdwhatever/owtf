@@ -6,42 +6,14 @@ owtf.api.server
 
 import logging
 
-import tornado.httpserver
-import tornado.ioloop
-import tornado.web
-import tornado.options
+from flask import Flask
 
 from owtf.dependency_management.dependency_resolver import BaseComponent
 from owtf.api import urls
 from owtf.lib.owtf_process import OWTFProcess
 
 
-class APIServer(OWTFProcess, BaseComponent):
-    def pseudo_run(self):
-        self.get_component("core").disable_console_logging()
-        config = self.get_component("config")
-        db_config = self.get_component("db_config")
-        db = self.get_component("db")
-        application = tornado.web.Application(
-            handlers=urls.get_handlers(),
-            template_path=config.get_val('INTERFACE_TEMPLATES_DIR'),
-            debug=False,
-            gzip=True,
-            static_path=config.get_val('STATICFILES_DIR'),
-            compiled_template_cache=False
-        )
-        self.server = tornado.httpserver.HTTPServer(application)
-        try:
-            ui_port = int(config.get_val("UI_SERVER_PORT"))
-            ui_address = config.get_val("SERVER_ADDR")
-            self.server.bind(ui_port, address=ui_address)
-            tornado.options.parse_command_line(
-                args=['dummy_arg', '--log_file_prefix=%s' % db_config.get('UI_SERVER_LOG'), '--logging=info'])
-            self.server.start(0)
-            db.create_session()
-            tornado.ioloop.IOLoop.instance().start()
-        except KeyboardInterrupt:
-            pass
+app = Flask("owtf-api")
 
 
 class FileServer(BaseComponent):

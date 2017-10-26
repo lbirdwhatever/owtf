@@ -12,70 +12,6 @@ from sqlalchemy import Table, Column, Integer, String, Boolean, Float, DateTime,
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.orm import relationship
 
-
-Base = declarative_base()
-
-
-# This table actually allows us to make a many to many relationship
-# between transactions table and grep_outputs table
-target_association_table = Table(
-    'target_session_association',
-    Base.metadata,
-    Column('target_id', Integer, ForeignKey('targets.id')),
-    Column('session_id', Integer, ForeignKey('sessions.id'))
-)
-
-Index('target_id_idx', target_association_table.c.target_id, postgresql_using='btree')
-
-
-class Session(Base):
-    __tablename__ = "sessions"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String, unique=True)
-    active = Column(Boolean, default=False)
-    targets = relationship("Target", secondary=target_association_table, backref="sessions")
-
-
-class Target(Base):
-    __tablename__ = "targets"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    target_url = Column(String, unique=True)
-    host_ip = Column(String)
-    port_number = Column(String)
-    url_scheme = Column(String)
-    alternative_ips = Column(String, nullable=True)  # Comma seperated
-    host_name = Column(String)
-    host_path = Column(String)
-    ip_url = Column(String)
-    top_domain = Column(String)
-    top_url = Column(String)
-    scope = Column(Boolean, default=True)
-    transactions = relationship("Transaction", cascade="delete")
-    poutputs = relationship("PluginOutput", cascade="delete")
-    urls = relationship("Url", cascade="delete")
-    commands = relationship("Command", cascade="delete")
-    # Also has a column session specified as backref in
-    # session model
-    works = relationship("Work", backref="target", cascade="delete")
-
-    @hybrid_property
-    def max_user_rank(self):
-        user_ranks = [-1]
-        user_ranks += [poutput.user_rank for poutput in self.poutputs]
-        return(max(user_ranks))
-
-    @hybrid_property
-    def max_owtf_rank(self):
-        owtf_ranks = [-1]
-        owtf_ranks += [poutput.owtf_rank for poutput in self.poutputs]
-        return(max(owtf_ranks))
-
-    def __repr__(self):
-        return "<Target (url='%s')>" % (self.target_url)
-
-
 # This table actually allows us to make a many to many relationship
 # between transactions table and grep_outputs table
 transaction_association_table = Table(
@@ -215,19 +151,6 @@ class Resource(Base):
     __table_args__ = (UniqueConstraint('resource', 'resource_type', 'resource_name'),)
 
 
-class ConfigSetting(Base):
-    __tablename__ = "configuration"
-
-    key = Column(String, primary_key=True)
-    value = Column(String)
-    section = Column(String)
-    descrip = Column(String, nullable=True)
-    dirty = Column(Boolean, default=False)
-
-    def __repr__(self):
-        return "<ConfigSetting (key='%s', value='%s', dirty='%r')>" % (self.key, self.value, self.dirty)
-
-
 class TestGroup(Base):
     __tablename__ = "test_groups"
 
@@ -238,57 +161,6 @@ class TestGroup(Base):
     url = Column(String)
     priority = Column(Integer)
     plugins = relationship("Plugin")
-
-
-class Plugin(Base):
-    __tablename__ = "plugins"
-
-    key = Column(String, primary_key=True)  # key = type@code
-    title = Column(String)
-    name = Column(String)
-    code = Column(String, ForeignKey("test_groups.code"))
-    group = Column(String)
-    type = Column(String)
-    descrip = Column(String, nullable=True)
-    file = Column(String)
-    attr = Column(String, nullable=True)
-    works = relationship("Work", backref="plugin", cascade="delete")
-    outputs = relationship("PluginOutput", backref="plugin")
-
-    def __repr__(self):
-        return "<Plugin (code='%s', group='%s', type='%s')>" % (self.code, self.group, self.type)
-
-    @hybrid_property
-    def min_time(self):
-        """
-        Consider last 5 runs only, better performance and accuracy
-        """
-        poutputs_num = len(self.outputs)
-        if poutputs_num != 0:
-            if poutputs_num < 5:
-                run_times = [poutput.run_time for poutput in self.outputs]
-            else:
-                run_times = [poutput.run_time for poutput in self.outputs[-5:]]
-            return min(run_times)
-        else:
-            return None
-
-    @hybrid_property
-    def max_time(self):
-        """
-        Consider last 5 runs only, better performance and accuracy
-        """
-        poutputs_num = len(self.outputs)
-        if poutputs_num != 0:
-            if poutputs_num < 5:
-                run_times = [poutput.run_time for poutput in self.outputs]
-            else:
-                run_times = [poutput.run_time for poutput in self.outputs[-5:]]
-            return max(run_times)
-        else:
-            return None
-
-    __table_args__ = (UniqueConstraint('type', 'code'),)
 
 
 class Work(Base):
