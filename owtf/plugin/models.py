@@ -56,3 +56,89 @@ class Plugin(db.Model):
             return None
 
     __table_args__ = (UniqueConstraint('type', 'code'),)
+
+
+class PluginOutput(Base):
+    __tablename__ = "plugin_outputs"
+
+    target_id = Column(Integer, ForeignKey("targets.id"))
+    plugin_key = Column(String, ForeignKey("plugins.key"))
+    # There is a column named plugin which is caused by backref from the plugin class
+    id = Column(Integer, primary_key=True)
+    plugin_code = Column(String)  # OWTF Code
+    plugin_group = Column(String)
+    plugin_type = Column(String)
+    date_time = Column(DateTime, default=datetime.datetime.now())
+    start_time = Column(DateTime)
+    end_time = Column(DateTime)
+    output = Column(String, nullable=True)
+    error = Column(String, nullable=True)
+    status = Column(String, nullable=True)
+    user_notes = Column(String, nullable=True)
+    user_rank = Column(Integer, nullable=True, default=-1)
+    owtf_rank = Column(Integer, nullable=True, default=-1)
+    output_path = Column(String, nullable=True)
+
+    @hybrid_property
+    def run_time(self):
+        return self.end_time - self.start_time
+
+    __table_args__ = (UniqueConstraint('plugin_key', 'target_id'),)
+    __tablename__ = "plugin_outputs"
+
+    target_id = Column(Integer, ForeignKey("targets.id"))
+    plugin_key = Column(String, ForeignKey("plugins.key"))
+    # There is a column named plugin which is caused by backref from the plugin class
+    id = Column(Integer, primary_key=True)
+    plugin_code = Column(String)  # OWTF Code
+    plugin_group = Column(String)
+    plugin_type = Column(String)
+    date_time = Column(DateTime, default=datetime.datetime.now())
+    start_time = Column(DateTime)
+    end_time = Column(DateTime)
+    output = Column(String, nullable=True)
+    error = Column(String, nullable=True)
+    status = Column(String, nullable=True)
+    user_notes = Column(String, nullable=True)
+    user_rank = Column(Integer, nullable=True, default=-1)
+    owtf_rank = Column(Integer, nullable=True, default=-1)
+    output_path = Column(String, nullable=True)
+
+    @hybrid_property
+    def run_time(self):
+        return self.end_time - self.start_time
+
+    __table_args__ = (UniqueConstraint('plugin_key', 'target_id'),)
+
+
+class Resource(Base):
+    __tablename__ = "resources"
+
+    id = Column(Integer, primary_key=True)
+    # Dirty if user edited it. Useful while updating
+    dirty = Column(Boolean, default=False)
+    resource_name = Column(String)
+    resource_type = Column(String)
+    resource = Column(String)
+    __table_args__ = (UniqueConstraint(
+        'resource', 'resource_type', 'resource_name'),)
+
+
+class TestGroup(Base):
+    __tablename__ = "test_groups"
+
+    code = Column(String, primary_key=True)
+    group = Column(String)  # web, network
+    descrip = Column(String)
+    hint = Column(String, nullable=True)
+    url = Column(String)
+    priority = Column(Integer)
+    plugins = relationship("Plugin")
+
+
+class Mapping(Base):
+    __tablename__ = 'mappings'
+
+    owtf_code = Column(String, primary_key=True)
+    mappings = Column(String)
+    category = Column(String, nullable=True)

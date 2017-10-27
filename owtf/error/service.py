@@ -147,3 +147,13 @@ def get(error_id):
     if not error:  # If invalid error id, bail out
         raise InvalidErrorReference("No error with id %s" % str(error_id))
     return derive_error_dict(error)
+
+def add(message):
+    """Add a debug message to the DB
+
+    :param Message: Message to be added
+    :type Message: `str`
+    :return: None
+    :rtype: None
+    """
+    db.add('DEBUG_DB', Message)
