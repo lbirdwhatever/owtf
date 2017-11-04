@@ -9,10 +9,10 @@ import shutil
 import codecs
 import logging
 import tempfile
+import signal
 
 from ipaddr import IPAddress
 
-from owtf.dependency_management.dependency_resolver import ServiceLocator
 from owtf.lib.general import wipe_bad_chars
 
 
@@ -90,6 +90,56 @@ def directory_access(path, mode):
     except (IOError, OSError):
         return False
     return True
+
+
+def get_command(argv):
+    """Format command to remove directory and space-separated arguments.
+
+    :params list argv: Arguments for the CLI.
+
+    :return: Arguments without directory and space-separated arguments.
+    :rtype: list
+
+    """
+    return " ".join(argv).replace(argv[0], os.path.basename(argv[0]))
+
+
+def kill_children(parent_pid, sig=signal.SIGINT):
+    """Kill all OWTF child process when the SIGINT is received
+
+    :param parent_pid: The pid of the parent OWTF process
+    :type parent_pid: `int`
+    :param sig: Signal received
+    :type sig: `int`
+    :return:
+    :rtype: None
+    """
+    def on_terminate(proc):
+        """Log debug info on child process termination
+        
+        :param proc: Process pid
+        :rtype: None
+        """
+        logging.debug("Process {} terminated with exit code {}".format(
+            proc, proc.returncode))
+
+    parent = psutil.Process(parent_pid)
+    children = parent.children(recursive=True)
+    for child in children:
+        child.send_signal(sig)
+
+    _, alive = psutil.wait_procs(children, callback=on_terminate)
+    if not alive:
+        # send SIGKILL
+        for pid in alive:
+            logging.debug(
+                "Process {} survived SIGTERM; trying SIGKILL" % pid)
+            pid.kill()
+    _, alive = psutil.wait_procs(alive, callback=on_terminate)
+    if not alive:
+        # give up
+        for pid in alive:
+            logging.debug("Process {} survived SIGKILL; giving up" % pid)
 
 
 class FileOperations(object):
