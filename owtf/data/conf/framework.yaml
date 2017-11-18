@@ -1,0 +1,34 @@
+cookie_attributes: secure, HttpOnly, domain, path, expires
+extract_urls_reserved_resource_name: Extract URLs
+force_overwrite: 'False'
+github_api_issues_url: https://api.github.com/repos/owtf/owtf/issues
+headers_for_cache_protection: Cache-Control, Pragma, Expires
+headers_for_clickjacking_protection: X-Frame-Options, X-Content-Security-Policy
+headers_for_cookies: Set-Cookie
+headers_for_cors: Access-Control-Allow-Origin, Access-Control-Allow-Credentials, Access-Control-Expose-Headers, Access-Control-Max-Age, Access-Control-Allow-Methods, Access-Control-Allow-Headers
+headers_for_cors_methods: Access-Control-Allow-Methods
+headers_for_fingerprint: Server, X-Powered-By, X-AspNet-Version, X-Runtime, X-Version, MicrosoftSharePointTeamServices
+headers_for_robots: X-Robots-Tag
+headers_for_ssl_protection: Strict-Transport-Security
+headers_for_xss_protection: X-Content-Security-Policy, X-XSS-Protection
+logs_dir: logs
+owtf_log_file: /tmp/owtf/logfile
+pnh_events_file: /tmp/owtf/pnh.log
+proxy_restricted_request_headers: Connection, Pragma, Cache-Control, If-Modified-Since
+proxy_restricted_response_headers: Content-Length, Content-Encoding, Etag, Transfer-Encoding, Connection, Vary, Accept-Ranges, Pragma
+regexp_file_url: ^[^\?]+\.(xml|exe|pdf|cs|log|inc|dat|bak|conf|cnf|old|zip|7z|rar|tar|gz|bz2|txt|xls|xlsx|doc|docx|ppt|pptx)$
+regexp_image_url: ^[^\?]+\.(jpg|jpeg|png|gif|bmp)$
+regexp_small_file_url: ^[^\?]+\.(xml|cs|inc|dat|bak|conf|cnf|old|txt)$
+regexp_ssi_url: ^[^\?]+\.(shtml|shtm|stm)$
+regexp_valid_url: ^(http|ftp)[^ ]+$
+response_regexp_for_asp_source: Potential ASP source code_____<%_____(<%.*?%>)
+response_regexp_for_autocomplete: Autocomplete fields_____type=.password_____(<form[^>]*?>|<input[^>]*?type[^>]*?password[^>]*?>)
+response_regexp_for_cache_protection: Cache Control Meta Tags_____<META.*?HTTP-EQUIV_____(<META.*?HTTP-EQUIV.*?Pragma.*?>|<META.*?HTTP-EQUIV.*?Expires.*?>|<META.*?HTTP-EQUIV.*?Cache-Control.*?>)
+response_regexp_for_css_js_comments: CSS/JS Comments_____/*_____(/\*.*?\*/)
+response_regexp_for_hidden: Hidden fields_____type=.hidden_____(<input[^>]*?type=[^>]*?hidden[^>]*>)
+response_regexp_for_html_comments: HTML Comments_____<!--_____(<!--.*?-->)
+response_regexp_for_js_comments: Single Line JS Comments_____[^-:]//_____[^-:](//(^dtd).*?\n)
+response_regexp_for_passwords: Password fields_____type=.password_____(<input[^>]*?type[^>]*?password[^>]*?>)
+response_regexp_for_php_source: Potential PHP source code_____<?_____(<\?(?!xml|xml-stylesheet|mso-application).*?\?>)
+response_regexp_for_robots_meta_tag: Robots Meta Tags_____<meta_____(<meta[^>]*?name=[\"\'][^\"\']*?bot[^\"\']*?[\"\'][^>]*?>)
+response_regexp_for_ssi: Server Side Includes_____<!--#_____(<!--(?:#.*)?-->)
