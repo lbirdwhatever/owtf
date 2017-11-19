@@ -18,28 +18,6 @@ from owtf.plugin.models import Plugin
 TEST_GROUPS = ['web', 'network', 'auxiliary']
 
 
-load_test_groups(select_user_or_default_config_path(
-    get_val("WEB_TEST_GROUPS"), 
-    get_val("WEB_PLUGIN_CONFIG_DIR")),
-    "web"
-)
-
-load_test_groups(select_user_or_default_config_path(
-    get_val("NET_TEST_GROUPS"),
-    get_val("NET_PLUGIN_CONFIG_DIR")),
-    "network"
-)
-
-load_test_groups(select_user_or_default_config_path(
-    get_val("AUX_TEST_GROUPS"),
-    get_val("AUX_PLUGIN_CONFIG_DIR")),
-    "auxiliary"
-)
-
-# After loading the test groups then load the plugins, because of many-to-one relationship
-load_plugins()
-
-
 def get_test_groups_config(file_path):
     """Reads the test groups from a config file
 

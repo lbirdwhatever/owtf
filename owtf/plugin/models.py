@@ -4,7 +4,7 @@ from sqlalchemy import Table, Column, Integer, String, Boolean, Float, DateTime,
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.orm import relationship
 
-from owtf.database import db
+from owtf.api.factory import db
 
 
 class Plugin(db.Model):

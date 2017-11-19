@@ -3,25 +3,25 @@ owtf.api.handlers.transactions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 """
+from flask import Flask, Blueprint
+from flask_restful import Resource
 
-import tornado.gen
-import tornado.web
-import tornado.httpclient
-
-from owtf.lib import exceptions
-from owtf.lib.general import cprint
-from owtf.api.base import APIRequestHandler
-from owtf.lib.exceptions import InvalidTargetReference
+from owtf import exceptions
+from owtf.utils.strings import cprint
+from owtf.exceptions import InvalidTargetReference
+from owtf.api.factory import app, api
 
 
-class TransactionDataHandler(APIRequestHandler):
-    SUPPORTED_METHODS = ['GET', 'DELETE']
+transactions = Blueprint('transactions', __name__, url_prefix='/transactions/')
+api.init_app(transactions)
 
+
+class TransactionDataHandler(Resource):
     def get(self, target_id=None, transaction_id=None):
         try:
             if transaction_id:
-                self.write(self.get_component("transaction").get_by_id_as_dict(int(transaction_id),
-                                                                               target_id=int(target_id)))
+                self.write(self.get_component("transaction").get_by_id_as_dict(
+                    int(transaction_id), target_id=int(target_id)))
             else:
                 # Empty criteria ensure all transactions
                 filter_data = dict(self.request.arguments)
@@ -56,9 +56,7 @@ class TransactionDataHandler(APIRequestHandler):
             raise tornado.web.HTTPError(400)
 
 
-class TransactionHrtHandler(APIRequestHandler):
-    SUPPORTED_METHODS = ['POST']
-
+class TransactionHrtHandler(Resource):
     def post(self, target_id=None, transaction_id=None):
         try:
             if transaction_id:
@@ -71,9 +69,7 @@ class TransactionHrtHandler(APIRequestHandler):
             raise tornado.web.HTTPError(400)
 
 
-class TransactionSearchHandler(APIRequestHandler):
-    SUPPORTED_METHODS = ['GET']
-
+class TransactionSearchHandler(Resource):
     def get(self, target_id=None):
         if not target_id:  # Must be a integer target id
             raise tornado.web.HTTPError(400)
@@ -93,9 +89,7 @@ class TransactionSearchHandler(APIRequestHandler):
             raise tornado.web.HTTPError(400)
 
 
-class URLDataHandler(APIRequestHandler):
-    SUPPORTED_METHODS = ['GET']
-
+class URLDataHandler(Resource):
     def get(self, target_id=None):
         try:
             # Empty criteria ensure all transactions
@@ -125,9 +119,7 @@ class URLDataHandler(APIRequestHandler):
         raise tornado.web.HTTPError(405)  # @UndefinedVariable
 
 
-class URLSearchHandler(APIRequestHandler):
-    SUPPORTED_METHODS = ['GET']
-
+class URLSearchHandler(Resource):
     def get(self, target_id=None):
         if not target_id:  # Must be a integer target id
             raise tornado.web.HTTPError(400)

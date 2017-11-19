@@ -11,8 +11,6 @@ import sys
 import logging
 
 from owtf.core import Core
-from owtf.dependency_management.component_initialiser import ComponentInitialiser, DatabaseNotRunningException
-from owtf.dependency_management.dependency_resolver import ServiceLocator
 from owtf.lib.cli_options import usage, parse_options
 
 

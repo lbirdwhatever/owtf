@@ -7,10 +7,7 @@ Component to handle data storage and search of all commands run
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from owtf.dependency_management.dependency_resolver import BaseComponent
-from owtf.dependency_management.interfaces import CommandRegisterInterface
-
-from owtf.database import db
+from owtf.api.factory import db
 from owtf.command_register.models import Command
 from owtf.target.service import target_required
 

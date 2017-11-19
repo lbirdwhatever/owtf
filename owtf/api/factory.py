@@ -21,6 +21,8 @@ from owtf.worklist.views import work
 
 
 app = Flask(__name__)
+api = Api(app, url_prefix="/api")
+
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/owtf.db'
 db = SQLAlchemy(app)
 

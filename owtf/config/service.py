@@ -18,15 +18,10 @@ except ImportError:  #PY2
      from urlparse import urlparse
 from collections import defaultdict
 
-from owtf.lib.exceptions import PluginAbortException, DBIntegrityException, UnresolvableTargetException
-from owtf.lib.general import cprint
+from owtf.exceptions import PluginAbortException, DBIntegrityException, UnresolvableTargetException
 from owtf.managers import target as target_manager
 from owtf.utils import is_internal_ip, directory_access, FileOperations
 
-
-REPLACEMENT_DELIMITER = "@@@"
-REPLACEMENT_DELIMITER_LENGTH = len(REPLACEMENT_DELIMITER)
-CONFIG_TYPES = ['string', 'other']
 
 config_path = os.path.expanduser(os.path.join("~", '.owtf', 'conf', 'framework.cfg'))
 
@@ -37,25 +32,6 @@ profiles = {
     "NET_PLUGIN_ORDER_PROFILE": None,
     "MAPPING_PROFILE": None
 }
-target = None
-initialize_attributes()
-# key can consist alphabets, numbers, hyphen & underscore.
-search_regex = re.compile('%s([a-zA-Z0-9-_]*?)%s' % (REPLACEMENT_DELIMITER, REPLACEMENT_DELIMITER))
-# Available profiles = g -> General configuration, n -> Network plugin
-# order, w -> Web plugin order, r -> Resources file
-initialize_attributes()
-load_config_from_file(framework_config_file_path())
-
-
-def initialize_attributes():
-    """Initializes the attributes for the config dictionary
-
-    :return: None
-    :rtype: None
-    """
-    config = defaultdict(list)  # General configuration information.
-    for type in CONFIG_TYPES:
-        config[type] = {}
 
 
 def select_user_or_default_config_path(file_path, default_path=""):
@@ -107,40 +83,6 @@ def load_config_from_file(config_path):
                 config_path, line))
 
 
-def str2bool(string):
-    """ Converts a string to a boolean
-
-    :param string: String to convert
-    :type string: `str`
-    :return: Boolean equivalent
-    :rtype: `bool`
-    """
-    return not(string in ['False', 'false', 0, '0'])
-
-
-def process_phase1(options):
-    """Process the options from the CLI.
-
-    :param dict options: Options coming from the CLI.
-
-    """
-    # Backup the raw CLI options in case they are needed later.
-    cli_options = deepcopy(options)
-    load_profiles(options['Profiles'])
-
-
-def process_phase2(options):
-    """Process the options for phase 2
-
-    :param options: Options coming from the CLI.
-    :type options: `dict`
-    :return: None
-    :rtype: None
-    """
-    target_urls = load_targets(options)
-    load_works(target_urls, options)
-
-
 def load_works(target_urls, options):
     """Select the proper plugins to run against the target URLs.
 
@@ -182,42 +124,6 @@ def load_work(target_url, options):
         logging.error("No plugin found matching type '%s' and group '%s' for target '%s'!" %
                         (options['PluginType'], group, target))
     worklist_manager.add_work(target, plugins, force_overwrite=options["Force_Overwrite"])
-
-
-def get_profile_path(profile_name):
-    """ Get the path to the named profile
-
-    :param profile_name: Name of the profile
-    :type profile_name: `str`
-    :return: Path where the profile is defined
-    :rtype: `str`
-    """
-    return profiles.get(profile_name, None)
-
-
-def load_profiles(profiles):
-    """ Load profiles from default config directory
-
-    :param profiles: Dictionary of paths to profiles
-    :type profiles: `dict`
-    :return: None
-    :rtype: None
-    """
-    # This prevents python from blowing up when the Key does not exist :)
-    profiles = defaultdict(list)
-    # Now override with User-provided profiles, if present.
-    profiles["GENERAL_PROFILE"] = profiles.get('g', None) or get_val("DEFAULT_GENERAL_PROFILE")
-    # Resources profile
-    profiles["RESOURCES_PROFILE"] = profiles.get('r', None) or \
-        get_val("DEFAULT_RESOURCES_PROFILE")
-    # web plugin order
-    profiles["WEB_PLUGIN_ORDER_PROFILE"] = profiles.get('w', None) or \
-        get_val("DEFAULT_WEB_PLUGIN_ORDER_PROFILE")
-    # network plugin order
-    profiles["NET_PLUGIN_ORDER_PROFILE"] = profiles.get('n', None) or \
-        get_val("DEFAULT_NET_PLUGIN_ORDER_PROFILE")
-    # mapping
-    profiles["MAPPING_PROFILE"] = profiles.get('m', None) or get_val("DEFAULT_MAPPING_PROFILE")
 
 
 def load_targets(options):
@@ -271,27 +177,6 @@ def get_aux_target(options):
         return targets.split(repeat_delim)
     else:
         return []
-
-
-def multi_replace(text, replace_dict):
-    """Recursive multiple replacement function
-
-    :param text: Text to replace
-    :type text: `str`
-    :param replace_dict: The parameter dict to be replaced with
-    :type replace_dict: `dict`
-    :return: The modified text after replacement
-    :rtype: `str`
-    """
-    new_text = text
-    for key in search_regex.findall(new_text):
-        # Check if key exists in the replace dict ;)
-        if replace_dict.get(key, None):
-            # A recursive call to remove all level occurences of place
-            # holders.
-            new_text = new_text.replace(REPLACEMENT_DELIMITER + key + REPLACEMENT_DELIMITER,
-                                        multi_replace(replace_dict[key], replace_dict))
-    return new_text
 
 
 def load_proxy_config(options):
@@ -421,82 +306,6 @@ def derive_config_from_url(target_URL):
     return target_config
 
 
-def hostname_is_ip(hostname, ip):
-    """Test if the hostname is an IP.
-
-    :param str hostname: the hostname of the target.
-    :param str ip: the IP (v4 or v6) of the target.
-
-    :return: ``True`` if the hostname is an IP, ``False`` otherwise.
-    :rtype: :class:`bool`
-
-    """
-    return hostname == ip
-
-
-def get_ip_from_hostname(hostname):
-    """Get IP from the hostname
-
-    :param hostname: Target hostname
-    :type hostname: `str`
-    :return: IP address of the target hostname
-    :rtype: `str`
-    """
-    ip = ''
-    # IP validation based on @marcwickenden's pull request, thanks!
-    for sck in [socket.AF_INET, socket.AF_INET6]:
-        try:
-            socket.inet_pton(sck, hostname)
-            ip = hostname
-            break
-        except socket.error:
-            continue
-    if not ip:
-        try:
-            ip = socket.gethostbyname(hostname)
-        except socket.gaierror:
-            raise UnresolvableTargetException("Unable to resolve: '%s'" % hostname)
-
-    ipchunks = ip.strip().split("\n")
-    alternative_ips = []
-    if len(ipchunks) > 1:
-        ip = ipchunks[0]
-        cprint("%s has several IP addresses: (%s).Choosing first: %s" % (hostname, "".join(ipchunks)[0:-3], ip))
-        alternative_ips = ipchunks[1:]
-    set_val('alternative_ips', alternative_ips)
-    ip = ip.strip()
-    set_val('INTERNAL_IP', is_internal_ip(ip))
-    logging.info("The IP address for %s is: '%s'" % (hostname, ip))
-    return ip
-
-
-def get_ips_from_hostname(hostname):
-    """Get IPs from the hostname
-
-    :param hostname: Target hostname
-    :type hostname: `str`
-    :return: IP addresses of the target hostname as a list
-    :rtype: `list`
-    """
-    ip = ''
-    # IP validation based on @marcwickenden's pull request, thanks!
-    for sck in [socket.AF_INET, socket.AF_INET6]:
-        try:
-            socket.inet_pton(sck, hostname)
-            ip = hostname
-            break
-        except socket.error:
-            continue
-    if not ip:
-        try:
-            ip = socket.gethostbyname(hostname)
-        except socket.gaierror:
-            raise UnresolvableTargetException("Unable to resolve: '%s'" % hostname)
-
-    ipchunks = ip.strip().split("\n")
-    return ipchunks
-
-
 def is_set(key):
     """Checks if the key is set in the config dict
 
@@ -524,28 +333,6 @@ def get_key_val(key):
     for type in CONFIG_TYPES:
         if key in config[type]:
             return config[type][key]
-
-
-def pad_key(key):
-    """Add delimiters.
-
-    :param key: Key to pad
-    :type key: `str`
-    :return: Padded key string
-    :rtype: `str`
-    """
-    return REPLACEMENT_DELIMITER + key + REPLACEMENT_DELIMITER
-
-
-def strip_key(key):
-    """Replaces key with empty space
-
-    :param key: Key to clear
-    :type key: `str`
-    :return: Empty key
-    :rtype: `str`
-    """
-    return key.replace(REPLACEMENT_DELIMITER, '')
 
 
 def get_val(key):
@@ -588,31 +375,6 @@ def get_log_path(process_name):
     """
     log_file_name = "%s.log" % process_name
     return os.path.join(get_logs_dir(), log_file_name)
-
-
-def get_as_list(key_list):
-    """Get values for keys in a list
-
-    :param key_list: List of keys
-    :type key_list: `list`
-    :return: List of corresponding values
-    :rtype: `list`
-    """
-    value_list = []
-    for key in key_list:
-        value_list.append(get_val(key))
-    return value_list
-
-
-def get_header_list(key):
-    """Get list from a string of values for a key
-
-    :param key: Key
-    :type key: `str`
-    :return: List of values
-    :rtype: `list`
-    """
-    return get_val(key).split(',')
 
 
 def set_general_val(type, key, value):

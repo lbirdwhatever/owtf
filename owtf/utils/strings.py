@@ -1,16 +1,81 @@
-"""
-owtf.lib.general
-~~~~~~~~~~~~~~~~
 
-Declare the helper functions for the framework.
-"""
+def str2bool(string):
+    """ Converts a string to a boolean
+
+    :param string: String to convert
+    :type string: `str`
+    :return: Boolean equivalent
+    :rtype: `bool`
+    """
+    return not(string in ['False', 'false', 0, '0'])
 
 
-from collections import defaultdict
-import os
-import re
-import base64
-import errno
+def multi_replace(text, replace_dict):
+    """Recursive multiple replacement function
+
+    :param text: Text to replace
+    :type text: `str`
+    :param replace_dict: The parameter dict to be replaced with
+    :type replace_dict: `dict`
+    :return: The modified text after replacement
+    :rtype: `str`
+    """
+    new_text = text
+    for key in search_regex.findall(new_text):
+        # Check if key exists in the replace dict ;)
+        if replace_dict.get(key, None):
+            # A recursive call to remove all level occurences of place
+            # holders.
+            new_text = new_text.replace(REPLACEMENT_DELIMITER + key + REPLACEMENT_DELIMITER,
+                                        multi_replace(replace_dict[key], replace_dict))
+    return new_text
+
+
+def get_as_list(key_list):
+    """Get values for keys in a list
+
+    :param key_list: List of keys
+    :type key_list: `list`
+    :return: List of corresponding values
+    :rtype: `list`
+    """
+    value_list = []
+    for key in key_list:
+        value_list.append(get_val(key))
+    return value_list
+
+
+def get_header_list(key):
+    """Get list from a string of values for a key
+
+    :param key: Key
+    :type key: `str`
+    :return: List of values
+    :rtype: `list`
+    """
+    return get_val(key).split(',')
+
+
+def pad_key(key):
+    """Add delimiters.
+
+    :param key: Key to pad
+    :type key: `str`
+    :return: Padded key string
+    :rtype: `str`
+    """
+    return REPLACEMENT_DELIMITER + key + REPLACEMENT_DELIMITER
+
+
+def strip_key(key):
+    """Replaces key with empty space
+
+    :param key: Key to clear
+    :type key: `str`
+    :return: Empty key
+    :rtype: `str`
+    """
+    return key.replace(REPLACEMENT_DELIMITER, '')
 
 
 def cprint(msg):
@@ -41,32 +106,6 @@ def multi_replace(text, replace_dict):
     for search, replace in list(replace_dict.items()):
         new_text = new_text.replace(search, str(replace))
     return new_text
-
-
-def check_pid(pid):
-    """Check whether pid exists in the current process table.
-    UNIX only.
-
-    :param pid: Pid to check
-    :type pid: `int`
-    :return: True if pid exists, else false
-    :rtype: `bool`
-    """
-    try:
-        os.kill(pid, 0)
-    except OSError as err:
-        if err.errno == errno.ESRCH:
-            # ESRCH == No such process
-            return False
-        elif err.errno == errno.EPERM:
-            # EPERM clearly means there's a process to deny access to
-            return True
-        else:
-            # According to "man 2 kill" possible error values are
-            # (EINVAL, EPERM, ESRCH)
-            raise
-    else:
-        return True
 
 
 def wipe_bad_chars(filename):
@@ -154,25 +193,6 @@ def truncate_lines(str, num_lines, EOL="\n"):
     return EOL.join(str.split(EOL)[0:num_lines])
 
 
-def derive_http_method(method, data):
-    """Derives the HTTP method from Data, etc
-
-    :param method: Method to check
-    :type method: `str`
-    :param data: Data to check
-    :type data: `str`
-    :return: Method found
-    :rtype: `str`
-    """
-    d_method = method
-    # Method not provided: Determine method from params
-    if d_method is None or d_method == '':
-        d_method = 'GET'
-        if data != '' and data is not None:
-            d_method = 'POST'
-    return d_method
-
-
 def get_random_str(len):
     """Function returns random strings of length len
 
@@ -196,24 +216,6 @@ def scrub_output(output):
     return ansi_escape.sub('', output)
 
 
-def get_file_as_list(filename):
-    """Get file contents as a list
-
-    :param filename: File path
-    :type filename: `str`
-    :return: Output list of the content
-    :rtype: `list`
-    """
-    try:
-        with open(filename, 'r') as f:
-            output = f.read().split("\n")
-            cprint("Loaded file: %s" % filename)
-    except IOError:
-        log("Cannot open file: %s (%s)" % (filename, str(sys.exc_info())))
-        output = []
-    return output
-
-
 def paths_exist(path_list):
     """Check if paths in the list exist
 
@@ -228,3 +230,19 @@ def paths_exist(path_list):
             log("WARNING: The path %s does not exist!" % path)
             valid = False
     return valid
+
+
+def is_convertable(value, conv):
+    """Convert a value
+
+    :param value:
+    :type value:
+    :param conv:
+    :type conv:
+    :return:
+    :rtype:
+    """
+    try:
+        return conv(value)
+    except ValueError:
+        return None

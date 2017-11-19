@@ -6,20 +6,19 @@ owtf.api.plugin
 
 import collections
 
-import tornado.gen
-import tornado.web
-import tornado.httpclient
+from flask import Flask, Blueprint
+from flask_restful import Resource
 
-from owtf.lib import exceptions
+from owtf.api.factory import app, api
+from owtf import exceptions
 from owtf.lib.general import cprint
-from owtf.api.base import APIRequestHandler
+
+plugins = Blueprint('plugins', __name__, url_prefix='/plugins/')
+api.init_app(plugins)
 
 
 
-class PluginDataHandler(APIRequestHandler):
-    SUPPORTED_METHODS = ['GET']
-    # TODO: Creation of user plugins
-
+class PluginDataHandler(Resource):
     def get(self, plugin_group=None, plugin_type=None, plugin_code=None):
         try:
             filter_data = dict(self.request.arguments)
@@ -48,9 +47,7 @@ class PluginDataHandler(APIRequestHandler):
             raise tornado.web.HTTPError(400)
 
 
-class PluginNameOutput(APIRequestHandler):
-    SUPPORTED_METHODS = ['GET']
-
+class PluginNameOutput(Resource):
     def get(self, target_id=None):
         """Retrieve scan results for a target.
         :return: {code: {data: [], details: {}}, code2: {data: [], details: {}} }
@@ -95,9 +92,7 @@ class PluginNameOutput(APIRequestHandler):
             raise tornado.web.HTTPError(400)
 
 
-class PluginOutputHandler(APIRequestHandler):
-    SUPPORTED_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
-
+class PluginOutputHandler(Resource):
     def get(self, target_id=None, plugin_group=None, plugin_type=None, plugin_code=None):
         try:
             filter_data = dict(self.request.arguments)
@@ -177,3 +172,8 @@ class PluginOutputHandler(APIRequestHandler):
         except exceptions.InvalidParameterType as e:
             cprint(e.parameter)
             raise tornado.web.HTTPError(400)
+
+
+api.add_resource(PluginDataHandler, '/')
+api.add_resource(PluginNameOutput, '/names')
+api.add_resource(PluginOutputHandler, '/output')

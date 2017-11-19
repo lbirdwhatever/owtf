@@ -1,6 +1,14 @@
-class ErrorDataHandler(APIRequestHandler):
-    SUPPORTED_METHODS = ['GET', 'POST', 'DELETE', 'PATCH']
+from flask import Flask, Blueprint
+from flask_restful import Resource
 
+from owtf.lib import exceptions
+from owtf.api.factory import app, api
+
+error = Blueprint('error', __name__, url_prefix='/errors/')
+api.init_app(error)
+
+
+class ErrorDataHandler(Resource):
     def get(self, error_id=None):
         if error_id is None:
             filter_data = dict(self.request.arguments)
@@ -41,3 +49,6 @@ class ErrorDataHandler(APIRequestHandler):
             self.get_component("db_error").delete(error_id)
         except exceptions.InvalidErrorReference:
             raise tornado.web.HTTPError(400)
+
+
+api.add_resource(ErrorDataHandler, '/')

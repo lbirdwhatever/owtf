@@ -22,14 +22,6 @@ from owtf.transactions.models import Transaction, GrepOutput, Url
 from owtf.target.service import target_required
 
 
-# The regex find differs for these types :P
-REGEX_TYPES = ['HEADERS', 'BODY']
-
- regexs = defaultdict(list)
-    for regex_type in REGEX_TYPES:
-        regexs[regex_type] = {}
-    compile_regex()
-
 @target_required
 def num_transactions(scope=True, target_id=None):
     """Return number of transactions in scope by default

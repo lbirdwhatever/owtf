@@ -4,19 +4,18 @@ owtf.api.handlers.targets
 
 """
 
-import tornado.gen
-import tornado.web
-import tornado.httpclient
+from flask import Flask, Blueprint
+from flask_restful import Resource
 
-from owtf.lib import exceptions
-from owtf.lib.general import cprint
-from owtf.api.base import APIRequestHandler
-from owtf.lib.exceptions import InvalidTargetReference
+from owtf.exceptions import InvalidTargetReference
+from owtf.api.factory import app, api
 
 
-class TargetConfigHandler(APIRequestHandler):
-    SUPPORTED_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+targets = Blueprint('targets', __name__, url_prefix='/targets/')
+api.init_app(targets)
 
+
+class TargetConfigHandler(Resource):
     def get(self, target_id=None):
         try:
             # If no target_id, means /target is accessed with or without filters
@@ -66,9 +65,7 @@ class TargetConfigHandler(APIRequestHandler):
             raise tornado.web.HTTPError(400)
 
 
-class TargetConfigSearchHandler(APIRequestHandler):
-    SUPPORTED_METHODS = ['GET']
-
+class TargetConfigSearchHandler(Resource):
     def get(self):
         try:
             filter_data = dict(self.request.arguments)
@@ -78,11 +75,14 @@ class TargetConfigSearchHandler(APIRequestHandler):
             raise tornado.web.HTTPError(400)
 
 
-class TargetSeverityChartHandler(APIRequestHandler):
-    SUPPORTED_METHODS = ['GET']
-
+class TargetSeverityChartHandler(Resource):
     def get(self):
         try:
             self.write(self.get_component("target").get_targets_by_severity_count())
         except exceptions.InvalidParameterType as e:
             raise tornado.web.HTTPError(400)
+
+
+api.add_resource(TargetConfigHandler, '/?([0-9]+)?/?$')
+api.add_resource(TargetConfigSearchHandler, '/search/?$')
+api.add_resource(TargetSeverityChartHandler, '/metrics/?$')

@@ -8,19 +8,20 @@ import collections
 from time import gmtime, strftime
 from collections import defaultdict
 
-import tornado.gen
-import tornado.web
-import tornado.httpclient
+from flask import Flask, Blueprint
+from flask_restful import Resource
+
+from owtf import exceptions
+from owtf.constants import RANKS
 
 from owtf.lib import exceptions
-from owtf.constants import RANKS
-from owtf.lib.general import cprint
-from owtf.api.base import APIRequestHandler
+from owtf.api.factory import app, api
+
+sessions = Blueprint('sessions', __name__, url_prefix='/sessions/')
+api.init_app(sessions)
 
 
-class OWTFSessionHandler(APIRequestHandler):
-    SUPPORTED_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
-
+class SessionHandler(Resource):
     def get(self, session_id=None, action=None):
         if action is not None:  # Action must be there only for put
             raise tornado.web.HTTPError(400)
@@ -71,17 +72,13 @@ class OWTFSessionHandler(APIRequestHandler):
             raise tornado.web.HTTPError(400)
 
 
-class ReportExportHandler(APIRequestHandler):
+class ReportExportHandler(Resource):
     """
     Class handling API methods related to export report funtionality.
     This API returns all information about a target scan present in OWTF.
     :raise InvalidTargetReference: If target doesn't exists.
     :raise InvalidParameterType: If some unknown parameter in `filter_data`.
     """
-    # TODO: Add API documentation.
-
-    SUPPORTED_METHODS = ['GET']
-
     def get(self, target_id=None):
         """
         REST API - /api/targets/<target_id>/export/ returns JSON(data) for template.
@@ -135,3 +132,6 @@ class ReportExportHandler(APIRequestHandler):
             self.write(result)
         else:
             raise tornado.web.HTTPError(400)
+
+
+api.add_resource(SessionHandler, '/')
