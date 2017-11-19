@@ -1,8 +1,6 @@
 """
-owtf.db.worklist_manager
+owtf.worklist.service
 ~~~~~~~~~~~~~~~~~~~~~~~~
-
-The DB stores worklist
 """
 
 from sqlalchemy.sql import not_

@@ -3,59 +3,19 @@ owtf.api.handlers.work
 ~~~~~~~~~~~~~
 
 """
-
-import tornado.gen
-import tornado.web
-import tornado.httpclient
+from flask import Flask, Blueprint
+from flask_restful import Resource
 
 from owtf.lib import exceptions
-from owtf.lib.general import cprint
-from owtf.api.base import APIRequestHandler
+from owtf.utils.strings import cprint
+from owtf.api.factory import app, api
 
 
-class WorkerHandler(APIRequestHandler):
-    SUPPORTED_METHODS = ['GET', 'POST', 'DELETE', 'OPTIONS']
-
-    def set_default_headers(self):
-        self.add_header("Access-Control-Allow-Origin", "*")
-        self.add_header("Access-Control-Allow-Methods", "GET, POST, DELETE")
-
-    def get(self, worker_id=None, action=None):
-        if not worker_id:
-            self.write(self.get_component("worker_manager").get_worker_details())
-        try:
-            if worker_id and (not action):
-                self.write(self.get_component("worker_manager").get_worker_details(int(worker_id)))
-            if worker_id and action:
-                if int(worker_id) == 0:
-                    getattr(self.get_component("worker_manager"), '%s_all_workers' % action)()
-                getattr(self.get_component("worker_manager"), '%s_worker' % action)(int(worker_id))
-        except exceptions.InvalidWorkerReference as e:
-            cprint(e.parameter)
-            raise tornado.web.HTTPError(400)
-
-    def post(self, worker_id=None, action=None):
-        if worker_id or action:
-            raise tornado.web.HTTPError(400)
-        self.get_component("worker_manager").create_worker()
-        self.set_status(201)  # Stands for "201 Created"
-
-    def options(self, worker_id=None, action=None):
-        self.set_status(200)
-
-    def delete(self, worker_id=None, action=None):
-        if (not worker_id) or action:
-            raise tornado.web.HTTPError(400)
-        try:
-            self.get_component("worker_manager").delete_worker(int(worker_id))
-        except exceptions.InvalidWorkerReference as e:
-            cprint(e.parameter)
-            raise tornado.web.HTTPError(400)
+worklist = Blueprint('worklist', __name__, url_prefix='/worklist/')
+api.init_app(worklist)
 
 
-class WorklistHandler(APIRequestHandler):
-    SUPPORTED_METHODS = ['GET', 'POST', 'DELETE', 'PATCH']
-
+class WorklistHandler(Resource):
     def get(self, work_id=None, action=None):
         try:
             if work_id is None:
@@ -125,9 +85,7 @@ class WorklistHandler(APIRequestHandler):
             raise tornado.web.HTTPError(400)
 
 
-class WorklistSearchHandler(APIRequestHandler):
-    SUPPORTED_METHODS = ['GET']
-
+class WorklistSearchHandler(Resource):
     def get(self):
         try:
             criteria = dict(self.request.arguments)
@@ -135,3 +93,7 @@ class WorklistSearchHandler(APIRequestHandler):
             self.write(self.get_component("worklist_manager").search_all(criteria))
         except exceptions.InvalidParameterType:
             raise tornado.web.HTTPError(400)
+
+
+api.add_resource(WorklistHandler, '/')
+api.add_resource(WorklistSearchHandler, '/search')

@@ -111,19 +111,6 @@ class PluginOutput(Base):
     __table_args__ = (UniqueConstraint('plugin_key', 'target_id'),)
 
 
-class Resource(Base):
-    __tablename__ = "resources"
-
-    id = Column(Integer, primary_key=True)
-    # Dirty if user edited it. Useful while updating
-    dirty = Column(Boolean, default=False)
-    resource_name = Column(String)
-    resource_type = Column(String)
-    resource = Column(String)
-    __table_args__ = (UniqueConstraint(
-        'resource', 'resource_type', 'resource_name'),)
-
-
 class TestGroup(Base):
     __tablename__ = "test_groups"
 

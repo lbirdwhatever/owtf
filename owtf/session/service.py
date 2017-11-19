@@ -4,7 +4,7 @@ owtf.db.session_manager
 Manager functions for sessions
 """
 
-from owtf.database import db
+from owtf.api.factory import db
 from owtf.lib import exceptions
 from owtf.sessions.models import Session
 

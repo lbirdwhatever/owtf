@@ -12,6 +12,7 @@ import logging
 
 from owtf.core import Core
 from owtf.lib.cli_options import usage, parse_options
+from owtf.plugins.service import get_groups_for_plugins, get_all_plugin_groups, get_all_plugin_types
 
 
 def banner():
@@ -37,7 +38,7 @@ def get_plugins_from_arg(arg):
     :rtype: `list`
     """
     plugins = arg.split(',')
-    plugin_groups = ServiceLocator.get_component("db_plugin").get_groups_for_plugins(plugins)
+    plugin_groups = get_groups_for_plugins(plugins)
     if len(plugin_groups) > 1:
         usage("The plugins specified belong to several plugin groups: '%s'" % str(plugin_groups))
     return [plugins, plugin_groups]
@@ -52,9 +53,8 @@ def process_options(user_args):
     :rtype: `dict`
     """
     try:
-        db_plugin = ServiceLocator.get_component("db_plugin")
-        valid_groups = db_plugin.get_all_plugin_groups()
-        valid_types = db_plugin.get_all_plugin_types() + ['all', 'quiet']
+        valid_groups = get_all_plugin_groups()
+        valid_types = get_all_plugin_types() + ['all', 'quiet']
         arg = parse_options(user_args, valid_groups, valid_types)
     except KeyboardInterrupt as e:
         usage("Invalid OWTF option(s) %s" % e)
@@ -84,39 +84,6 @@ def process_options(user_args):
 
     if arg.ExceptPlugins:
         arg.ExceptPlugins, plugin_groups = get_plugins_from_arg(arg.ExceptPlugins)
-
-    if arg.TOR_mode:
-        arg.TOR_mode = arg.TOR_mode.split(":")
-        if(arg.TOR_mode[0] == "help"):
-            from owtf.http.proxy.tor_manager import TOR_manager
-            TOR_manager.msg_configure_tor()
-            exit(0)
-        if len(arg.TOR_mode) == 1:
-            if arg.TOR_mode[0] != "help":
-                usage("Invalid argument for TOR-mode")
-        elif len(arg.TOR_mode) != 5:
-            usage("Invalid argument for TOR-mode")
-        else:
-            # Enables OutboundProxy.
-            if arg.TOR_mode[0] == '':
-                outbound_proxy_ip = "127.0.0.1"
-            else:
-                outbound_proxy_ip = arg.TOR_mode[0]
-            if arg.TOR_mode[1] == '':
-                outbound_proxy_port = "9050"  # default TOR port
-            else:
-                outbound_proxy_port = arg.TOR_mode[1]
-            arg.OutboundProxy = "socks://%s:%s" % (outbound_proxy_ip, outbound_proxy_port)
-
-    if arg.Botnet_mode:  # Checking arguments
-        arg.Botnet_mode = arg.Botnet_mode.split(":")
-        if arg.Botnet_mode[0] == "miner" and len(arg.Botnet_mode) != 1:
-            usage("Invalid argument for Botnet mode\n Mode must be miner or list")
-        if arg.Botnet_mode[0] == "list":
-            if len(arg.Botnet_mode) != 2:
-                usage("Invalid argument for Botnet mode\n Mode must be miner or list")
-            if not os.path.isfile(os.path.expanduser(arg.Botnet_mode[1])):
-                usage("Error Proxy List not found! Please check the path.")
 
     if arg.OutboundProxy:
         arg.OutboundProxy = arg.OutboundProxy.split('://')
@@ -183,53 +150,27 @@ def process_options(user_args):
 
     return {
         'list_plugins': arg.list_plugins,
-        'Force_Overwrite': arg.ForceOverwrite,
-        'Interactive': arg.Interactive == 'yes',
-        'Simulation': arg.Simulation,
-        'Scope': scope,
+        'force_overwrite': arg.force_overwrite,
+        'interactive': arg.interactive == 'yes',
+        'simulation': arg.simulation,
+        'scope': scope,
         'argv': sys.argv,
-        'PluginType': arg.PluginType,
-        'OnlyPlugins': arg.OnlyPlugins,
-        'ExceptPlugins': arg.ExceptPlugins,
-        'InboundProxy': arg.InboundProxy,
-        'OutboundProxy': arg.OutboundProxy,
-        'OutboundProxyAuth': arg.OutboundProxyAuth,
-        'Profiles': profiles,
-        'PluginGroup': plugin_group,
-        'RPort': arg.RPort,
-        'PortWaves': arg.PortWaves,
-        'ProxyMode': arg.ProxyMode,
-        'TOR_mode': arg.TOR_mode,
-        'Botnet_mode': arg.Botnet_mode,
+        'plugin_type': arg.plugin_type,
+        'only_plugins': arg.only_plugins,
+        'except_plugins': arg.except_plugins,
+        'inbound_proxy': arg.inbound_proxy,
+        'outbound_proxy': arg.outbound_proxy,
+        'outbound_proxy_auth': arg.outbound_proxy_auth,
+        'profiles': profiles,
+        'plugin_group': plugin_group,
+        'rport': arg.rport,
+        'port_waves': arg.port_waves,
+        'proxy_mode': arg.proxy_mode,
+        'tor_mode': arg.tor_mode,
+        'botnet_mode': arg.botnet_mode,
         'nowebui': arg.nowebui,
-        'Args': args
+        'args': args
     }
-
-
-def run_owtf(core, args):
-    """This function calls core and loads the appropriate phases of component initialization
-
-    :param core: core object
-    :type core::Class:`owtf.core.Core`
-    :param args: Arguments dictionary
-    :type args: `dict`
-    :return:
-    :rtype: None
-    """
-    try:
-        if core.start(args):
-            # Only if Start is for real (i.e. not just listing plugins, etc)
-            core.finish()  # Not Interrupted or Crashed.
-    except KeyboardInterrupt:
-        # NOTE: The user chose to interact: interactivity check redundant here:
-        logging.warning("OWTF was aborted by the user:")
-        logging.info("Please check report/plugin output files for partial results")
-        # Interrupted. Must save the DB to disk, finish report, etc.
-        core.finish()
-    except SystemExit:
-        pass  # Report already saved, framework tries to exit.
-    finally:  # Needed to rename the temp storage dirs to avoid confusion.
-        core.clean_temp_storage_dirs()
 
 
 def main(args):
@@ -244,21 +185,22 @@ def main(args):
     # Get tool path from script path:
     root_dir = os.path.dirname(os.path.abspath(args[0])) or '.'
     owtf_pid = os.getpid()
-
-    try:
-        ComponentInitialiser.initialisation_phase_1(root_dir, owtf_pid)
-    except DatabaseNotRunningException:
-        exit(-1)
-
     args = process_options(args[1:])
-    ServiceLocator.get_component("config").process_phase1(args)
-    ComponentInitialiser.initialisation_phase_2(args)
 
     # Initialise Framework.
     core = Core()
-    logging.warn(
-        "OWTF Version: %s, Release: %s " % (
-            ServiceLocator.get_component("config").get_val('VERSION'),
-            ServiceLocator.get_component("config").get_val('RELEASE'))
-    )
-    run_owtf(core, args)
+    logging.warn("OWTF Version: %s, Release: %s " % (__version__, __release__))
+    try:
+        if core.start(args):
+            # Only if Start is for real (i.e. not just listing plugins, etc)
+            core.finish()  # Not Interrupted or Crashed.
+    except KeyboardInterrupt:
+        # NOTE: The user chose to interact: interactivity check redundant here:
+        logging.warning("[-] OWTF was aborted by the user:")
+        logging.info("[-] Please check report/plugin output files for partial results")
+        # Interrupted. Must save the DB to disk, finish report, etc.
+        core.finish()
+    except SystemExit:
+        pass  # Report already saved, framework tries to exit.
+    finally:  # Needed to rename the temp storage dirs to avoid confusion.
+        core.clean_temp_storage_dirs()

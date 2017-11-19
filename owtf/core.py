@@ -17,21 +17,15 @@ import multiprocessing
 import tornado
 import psutil
 
-from owtf.dependency_management.dependency_resolver import BaseComponent
-from owtf.dependency_management.component_initialiser import ComponentInitialiser
-from owtf.utils import FileOperations, catch_io_errors, OutputCleaner
-from owtf.api import server
-from owtf.proxy import proxy, transaction_logger
-from owtf.managers import worker
-from owtf.lib.formatters import ConsoleFormatter, FileFormatter
+from owtf.utils.file import FileOperations, catch_io_errors
+from owtf.utils.commands import OutputCleaner
+
+from owtf.http import transaction_logger
+from owtf.workers.service import *
+from owtf.utils.strings import ConsoleFormatter, FileFormatter
 
 
-class Core(BaseComponent):
-
-    """Main entry point for OWTF that manages the OWTF components."""
-
-    COMPONENT_NAME = "core"
-
+class Core(object):
     def __init__(self):
         """Initialize a Core instance.
 
@@ -190,38 +184,3 @@ class Core(BaseComponent):
                 self.cli_server.clean_up()
             tornado.ioloop.IOLoop.instance().stop()
             sys.exit(0)
-
-    def kill_children(self, parent_pid, sig=signal.SIGINT):
-        """Kill all OWTF child process when the SIGINT is received
-
-        :param parent_pid: The pid of the parent OWTF process
-        :type parent_pid: `int`
-        :param sig: Signal received
-        :type sig: `int`
-        :return:
-        :rtype: None
-        """
-        def on_terminate(proc):
-            """Log debug info on child process termination
-            
-            :param proc: Process pid
-            :rtype: None
-            """
-            logging.debug("Process {} terminated with exit code {}".format(proc, proc.returncode))
-
-        parent = psutil.Process(parent_pid)
-        children = parent.children(recursive=True)
-        for child in children:
-            child.send_signal(sig)
-
-        _, alive = psutil.wait_procs(children, callback=on_terminate)
-        if not alive:
-            # send SIGKILL
-            for pid in alive:
-                logging.debug("Process {} survived SIGTERM; trying SIGKILL" % pid)
-                pid.kill()
-        _, alive = psutil.wait_procs(alive, callback=on_terminate)
-        if not alive:
-            # give up
-            for pid in alive:
-                logging.debug("Process {} survived SIGKILL; giving up" % pid)

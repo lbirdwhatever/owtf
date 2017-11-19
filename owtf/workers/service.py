@@ -19,17 +19,15 @@ from time import strftime
 
 import psutil
 
-from owtf.dependency_management.dependency_resolver import BaseComponent, ServiceLocator
-from owtf.dependency_management.interfaces import WorkerManagerInterface
-from owtf.lib.general import check_pid
+from owtf.utils.process import check_pid
 from owtf.lib.owtf_process import OWTFProcess
-from owtf.lib.exceptions import InvalidWorkerReference
+from owtf.exceptions import InvalidWorkerReference
 
 # For psutil
 TIMEOUT = 3
 
 
-class Worker(OWTFProcess, BaseComponent):
+class Worker(OWTFProcess):
     def pseudo_run(self):
         """ When run for the first time, put something into output queue ;)
 
@@ -59,7 +57,7 @@ class Worker(OWTFProcess, BaseComponent):
         sys.exit(0)
 
 
-class WorkerManager(BaseComponent, WorkerManagerInterface):
+class WorkerManager(object):
 
     COMPONENT_NAME = "worker_manager"
 
