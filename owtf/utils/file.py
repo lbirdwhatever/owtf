@@ -124,3 +124,29 @@ def get_file_as_list(filename):
         log("Cannot open file: %s (%s)" % (filename, str(sys.exc_info())))
         output = []
     return output
+
+
+def create_temp_storage_dirs(owtf_pid):
+    """Create a temporary directory in /tmp with pid suffix.
+
+    :return:
+    :rtype: None
+    """
+    tmp_dir = os.path.join('/tmp', 'owtf')
+    if not os.path.exists(tmp_dir):
+        tmp_dir = os.path.join(tmp_dir, str(owtf_pid))
+        if not os.path.exists(tmp_dir):
+            FileOperations.make_dirs(tmp_dir)
+
+
+def clean_temp_storage_dirs(owtf_pid):
+    """Rename older temporary directory to avoid any further confusions.
+
+    :return:
+    :rtype: None
+    """
+    curr_tmp_dir = os.path.join('/tmp', 'owtf', str(owtf_pid))
+    new_tmp_dir = os.path.join(
+        '/tmp', 'owtf', 'old-%d' % owtf_pid)
+    if os.path.exists(curr_tmp_dir) and os.access(curr_tmp_dir, os.W_OK):
+        os.rename(curr_tmp_dir, new_tmp_dir)

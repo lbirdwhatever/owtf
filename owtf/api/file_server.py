@@ -1,5 +1,5 @@
 """
-owtf.api.base
+owtf.api.file_server
 ~~~~~~~~~~~~~
 
 """
@@ -16,25 +16,6 @@ import subprocess
 import tornado.web
 import tornado.template
 from tornado.escape import url_escape
-
-from owtf.dependency_management.dependency_resolver import BaseComponent, ServiceLocator
-
-
-class APIRequestHandler(tornado.web.RequestHandler, BaseComponent):
-
-    def write(self, chunk):
-        if isinstance(chunk, list):
-            super(APIRequestHandler, self).write(json.dumps(chunk))
-            self.set_header("Content-Type", "application/json")
-        else:
-            super(APIRequestHandler, self).write(chunk)
-
-
-class UIRequestHandler(tornado.web.RequestHandler, BaseComponent):
-    def reverse_url(self, name, *args):
-        url = super(UIRequestHandler, self).reverse_url(name, *args)
-        url = url.replace('?', '')
-        return url.split('None')[0]
 
 
 class FileRedirectHandler(tornado.web.RequestHandler):

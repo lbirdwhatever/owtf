@@ -5,10 +5,5 @@ from celery.app.task import Task
 
 from owtf.runner.settings import settings
 
-class Worker(Task):
-    def apply_async(self, *args, **kwargs):
-            return Task.apply_async(self, *args, **kwargs)
-
-
-app = Celery('owtf')
+app = Celery('owtf-workers')
 app.config_from_object(settings)

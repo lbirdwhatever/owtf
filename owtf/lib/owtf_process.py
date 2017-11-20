@@ -7,10 +7,8 @@ Consists of owtf process class and its manager
 
 from multiprocessing import Process, Queue
 
-from owtf.dependency_management.dependency_resolver import BaseComponent
 
-
-class OWTFProcess(Process, BaseComponent):
+class OWTFProcess(Process):
     """
     Implementing own proxy of Process for better control of processes launched
     from OWTF both while creating and terminating the processes

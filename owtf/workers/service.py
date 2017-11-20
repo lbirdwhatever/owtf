@@ -10,31 +10,29 @@ import signal
 import subprocess
 import logging
 import multiprocessing
-import psutil
-try:
-    import queue
-except ImportError:
-    import Queue as queue
 from time import strftime
 
 import psutil
+from celery import Task
 
 from owtf.utils.process import check_pid
 from owtf.lib.owtf_process import OWTFProcess
 from owtf.exceptions import InvalidWorkerReference
+from owtf.config.service import get
+from owtf.worklist.service import get_work
+
 
 # For psutil
 TIMEOUT = 3
 
 
-class Worker(OWTFProcess):
-    def pseudo_run(self):
+class Worker(object):
+    def run(self):
         """ When run for the first time, put something into output queue ;)
 
         :return: None
         :rtype: None
         """
-        self.output_q.put('Started')
         while self.poison_q.empty():
             try:
                 work = self.input_q.get(True, 2)
@@ -58,16 +56,7 @@ class Worker(OWTFProcess):
 
 
 class WorkerManager(object):
-
-    COMPONENT_NAME = "worker_manager"
-
     def __init__(self, keep_working=True):
-        self.keep_working = keep_working
-        self.register_in_service_locator()
-        self.db_config = self.get_component("db_config")
-        self.error_handler = self.get_component("error_handler")
-        self.shell = self.get_component("shell")
-        self.db = self.get_component("db")
         self.worklist = []  # List of unprocessed (plugin*target)
         self.workers = []  # list of worker and work (worker, work)
         self.spawn_workers()
@@ -78,7 +67,7 @@ class WorkerManager(object):
         :return: max number of allowed processes
         :rtype: `int`
         """
-        process_per_core = int(self.db_config.get('PROCESS_PER_CORE'))
+        process_per_core = int(get('PROCESS_PER_CORE'))
         cpu_count = multiprocessing.cpu_count()
         return process_per_core * cpu_count
 
@@ -89,10 +78,9 @@ class WorkerManager(object):
         :rtype: `dict`
         """
         work = None
-
         avail = psutil.virtual_memory().available
-        if int(avail/1024/1024) > int(self.db_config.get('MIN_RAM_NEEDED')):
-            work = self.db.worklist.get_work(self.targets_in_use())
+        if int(avail/1024/1024) > int(get('MIN_RAM_NEEDED')):
+            work = get_work(self.targets_in_use())
         else:
             logging.warn("Not enough memory to execute a plugin")
         return work
@@ -155,7 +143,7 @@ class WorkerManager(object):
                     self.workers[k]["start_time"] = "NA"
                 else:
                     logging.info("Worker with name %s and pid %s seems dead" % (self.workers[k]["worker"].name,
-                                                                                self.workers[k]["worker"].pid))
+                        self.workers[k]["worker"].pid))
                     self.spawn_worker(index=k)
                 work_to_assign = self.get_task()
                 if work_to_assign:
